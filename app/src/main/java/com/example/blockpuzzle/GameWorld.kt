@@ -23,7 +23,6 @@ class GameWorld(
 
     private var deviceHeight = 0
     private var deviceWidth = 0
-    private var canvas: Canvas? = Canvas()
 
     private val blockPool: MutableList<GroupBlock> = mutableListOf()
     private val blockDealer = BlockManager(context)
@@ -45,6 +44,10 @@ class GameWorld(
         }
     }
 
+    init {
+        generatePool()
+    }
+
     fun render(canvas: Canvas?) {
         canvas?.drawRect(0f, 0f, deviceWidth.toFloat(), deviceHeight.toFloat(), paint)
         board.draw(canvas)
@@ -54,12 +57,13 @@ class GameWorld(
         }
     }
 
-    fun update() {
+    fun update(deltaTime: Long) {
         for (block in blockPool) {
             if (!block.isHidden()) {
-                block.update()
+                block.update(deltaTime)
             }
         }
+        board.update(deltaTime)
     }
 
     fun set(deviceWidth: Int, deviceHeight: Int) {
@@ -79,9 +83,9 @@ class GameWorld(
 
         hookedPosY = boardY + boardWidth + deviceWidth * 0.25f
         val distanceX = boardWidth / 6
-        hookedPositionsX[0] = boardX + distanceX
-        hookedPositionsX[1] = boardX + distanceX * 3
-        hookedPositionsX[2] = boardX + distanceX * 5
+        hookedPositionsX.add(boardX + distanceX)
+        hookedPositionsX.add(boardX + distanceX * 3)
+        hookedPositionsX.add(boardX + distanceX * 5)
         setGroupBlocksPosition()
 
         blockPool[0].setSizeMaximum(boardWidth / 8)
@@ -187,8 +191,5 @@ class GameWorld(
         return gameOver
     }
 
-    fun addCanvas(newCanvas: Canvas?) {
-        canvas = newCanvas
-    }
 
 }

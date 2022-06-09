@@ -10,22 +10,15 @@ class GameSurfaceView(
 ) : SurfaceView(context),
     SurfaceHolder.Callback
 {
-    private val gameWorld = GameWorld(getContext())
-    private val gameThread = GameThread(this)
+    private var gameWorld = GameWorld(getContext())
+    private var gameThread = GameThread(this)
 
     init {
         holder.addCallback(this)
+        gameWorld = GameWorld(getContext())
         setOnTouchListener(gameWorld)
+        gameThread = GameThread(this)
         gameThread.start()
-    }
-
-    fun tryDraw(holder: SurfaceHolder) {
-        val canvas: Canvas? = holder.lockCanvas()
-        gameWorld.update()
-        if (canvas != null) {
-            draw(canvas)
-        }
-        holder.unlockCanvasAndPost(canvas)
     }
 
     override fun draw(canvas: Canvas?) {
@@ -37,8 +30,8 @@ class GameSurfaceView(
         gameWorld.set(width, height)
     }
 
-    fun update() {
-        gameWorld.update()
+    fun update(deltaTime: Long) {
+        gameWorld.update(deltaTime)
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}

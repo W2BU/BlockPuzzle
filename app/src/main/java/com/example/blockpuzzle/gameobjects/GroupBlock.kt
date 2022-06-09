@@ -19,7 +19,7 @@ class GroupBlock (
     private val context: Context?
 ){
     private var childSizeCurrent: Float = 0f
-    private var blockToDraw = Block(0f, 0f, childSizeCurrent.toFloat(), childSizeCurrent.toFloat(), context)
+    private var blockToDraw = Block(0f, 0f, childSizeCurrent, childSizeCurrent, context)
 
     private var hidden = false
     private var pressed = false
@@ -64,7 +64,7 @@ class GroupBlock (
         }
     }
 
-    fun update() {
+    fun update(deltaTime: Long) {
         if (hidden) {
             return
         }

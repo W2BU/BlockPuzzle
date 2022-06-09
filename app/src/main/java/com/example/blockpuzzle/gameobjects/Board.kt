@@ -165,4 +165,7 @@ class Board (
         }
     }
 
+    fun update(deltaTime: Long) {
+    }
+
 }
