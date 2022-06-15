@@ -2,24 +2,17 @@ package com.example.blockpuzzle.gameobjects
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
-
-enum class GroupBlockState {
-    INIT,
-    HOME,
-    IDLE,
-}
 
 class GroupBlock (
     private var middleX: Float,
     private var middleY: Float,
     private var childSizeNormal: Float,
-    private var childSizeMaximum: Float,
     private val matrix: List<List<Boolean>>,
     private val context: Context?
 ){
-    private var childSizeCurrent: Float = 0f
-    private var blockToDraw = Block(0f, 0f, childSizeCurrent, childSizeCurrent, context)
+    private var blockToDraw = Block(0f, 0f, childSizeNormal, childSizeNormal, context)
 
     private var hidden = false
     private var pressed = false
@@ -28,7 +21,6 @@ class GroupBlock (
     private var homePosY = 0
     private var yMaxDistance: Float = 0f
 
-    private var state = GroupBlockState.INIT
 
     fun isInArea(x: Float, y: Float): Boolean {
         return !hidden &&
@@ -46,52 +38,25 @@ class GroupBlock (
         if (hidden) {
             return
         }
-        blockToDraw.setSize(childSizeCurrent.toFloat())
-        val groupBlockWidth: Float = (matrix[0].size * childSizeCurrent).toFloat()
-        val groupBlockHeight: Float = (matrix.size * childSizeCurrent).toFloat()
+        blockToDraw.setSize(childSizeNormal)
+        val groupBlockWidth: Float = (matrix[0].size * childSizeNormal)
+        val groupBlockHeight: Float = (matrix.size * childSizeNormal)
         val left = middleX - groupBlockWidth / 2
         val top = middleY - groupBlockHeight / 2
+
         for (row in matrix.indices) {
             for (col in 0 until matrix[0].size) {
                 if (matrix[row][col]) {
-                    blockToDraw.setX(left + col * childSizeCurrent)
-                    blockToDraw.setY(top + row * childSizeCurrent)
+                    blockToDraw.setX(left + col * childSizeNormal)
+                    blockToDraw.setY(top + row * childSizeNormal)
                     if (canvas != null) {
                         blockToDraw.draw(canvas, paint)
                     }
                 }
             }
         }
-    }
-
-    fun update(deltaTime: Long) {
-        if (hidden) {
-            return
-        }
-        when (state) {
-           GroupBlockState.INIT -> {
-                if (childSizeCurrent > childSizeNormal) {
-                    childSizeCurrent = childSizeNormal
-                    state = GroupBlockState.IDLE
-                }
-            }
-           GroupBlockState.HOME -> {
-                if (middleX < homePosX && middleX > homePosX ||
-                    middleY < homePosY && middleY > homePosY
-                ) {
-                    middleX = homePosX.toFloat()
-                    middleY = homePosY.toFloat()
-                    state = GroupBlockState.IDLE
-                    childSizeCurrent = childSizeNormal
-                }
-            }
-            else -> {}
-        }
-    }
-
-    fun setSizeMaximum(newSize: Float) {
-        childSizeMaximum = newSize
-        yMaxDistance = childSizeMaximum * 3
+        paint.color = Color.RED
+        canvas?.drawCircle(getBlockMiddleX(), getBlockMiddleY(), 5f, paint)
     }
 
     fun isHidden(): Boolean = hidden
@@ -102,14 +67,14 @@ class GroupBlock (
 
     fun setHidden(newState: Boolean) { hidden = newState }
 
-    fun getFirstBlockMiddleX(): Float {
-        val blockWidth: Float = matrix[0].size * childSizeMaximum
-        return middleX - blockWidth / 2 + childSizeMaximum / 2
+    fun getBlockMiddleX(): Float {
+        val blockWidth: Float = matrix[0].size * childSizeNormal
+        return middleX - blockWidth / 2 + childSizeNormal / 2
     }
 
-    fun getFirstBlockMiddleY(): Float {
-        val blockHeight: Float = matrix.size * childSizeMaximum
-        return middleY - yMaxDistance - blockHeight / 2 + childSizeMaximum / 2
+    fun getBlockMiddleY(): Float {
+        val blockHeight: Float = matrix.size * childSizeNormal
+        return middleY - yMaxDistance - blockHeight / 2 + childSizeNormal / 2
     }
 
     fun setMiddleX(newValue: Float) { middleX = newValue }
@@ -123,27 +88,24 @@ class GroupBlock (
             middleX,
             middleY,
             childSizeNormal,
-            childSizeMaximum,
             matrix,
             context)
         groupBlock.hidden = hidden
         groupBlock.blockToDraw = blockToDraw
         groupBlock.homePosX = homePosX
         groupBlock.homePosY = homePosY
-        groupBlock.childSizeCurrent = childSizeCurrent
         groupBlock.yMaxDistance = yMaxDistance
         return groupBlock
     }
 
     fun moveHome(homeX: Float, homeY: Float) {
-        homePosX = homeX.toInt()
-        homePosY = homeY.toInt()
-        state = GroupBlockState.HOME
+        middleX = homeX
+        middleY = homeY
     }
 
     fun reset() {
-        state = GroupBlockState.INIT
-        setHidden(false)
+        hidden = false
     }
+
 
 }

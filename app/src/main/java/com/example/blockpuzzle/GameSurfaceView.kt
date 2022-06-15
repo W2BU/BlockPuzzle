@@ -15,9 +15,7 @@ class GameSurfaceView(
 
     init {
         holder.addCallback(this)
-        gameWorld = GameWorld(getContext())
         setOnTouchListener(gameWorld)
-        gameThread = GameThread(this)
         gameThread.start()
     }
 
@@ -30,9 +28,6 @@ class GameSurfaceView(
         gameWorld.set(width, height)
     }
 
-    fun update(deltaTime: Long) {
-        gameWorld.update(deltaTime)
-    }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 

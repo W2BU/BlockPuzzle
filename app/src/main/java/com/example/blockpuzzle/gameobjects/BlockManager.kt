@@ -1,20 +1,25 @@
 package com.example.blockpuzzle.gameobjects
 
 import android.content.Context
-import android.graphics.Canvas
 import kotlin.random.Random
 
-class BlockManager(private val canvas: Context?) {
-    private val factory = BlockFactory(canvas)
+class BlockManager(context: Context?) {
+    private val factory = BlockFactory(context)
     private val blocks: List<GroupBlock> = buildList {
-        add(factory.getOne())
+        add(factory.getCubeOne())
+        add(factory.getCubeTwo())
+        add(factory.getCubeThree())
         add(factory.get2TowerH())
         add(factory.get2TowerV())
         add(factory.get3TowerH())
         add(factory.get3TowerV())
+        add(factory.getZ())
+        add(factory.getReversedZ())
+        add(factory.get4TowerV())
+        add(factory.get4TowerH())
     }
 
-    fun getById(id: Int): GroupBlock {
+    private fun getById(id: Int): GroupBlock {
         if (id >= blocks.size || id < 0) {
             return blocks[0]
         }
@@ -25,10 +30,9 @@ class BlockManager(private val canvas: Context?) {
         return getById(Random.nextInt(0, blocks.size)).clone()
     }
 
-    fun setMaxWidth(width: Float) {
+    fun setBlockWidth(width: Float) {
         for (block in blocks) {
-            block.setSizeMaximum(width)
-            block.setChildSizeNormal(width * 0.4f)
+            block.setChildSizeNormal(width)
         }
     }
 

@@ -1,8 +1,14 @@
 package com.example.blockpuzzle
 
 import android.graphics.Canvas
+import android.view.SurfaceHolder
 
-class GameThread(private val gameSurfaceView: GameSurfaceView): Thread() {
+class GameThread(
+    private var gameSurfaceView: GameSurfaceView
+): Thread() {
+
+    private var surfaceHolder: SurfaceHolder = gameSurfaceView.holder
+
     override fun run() {
         val fps = 30
         val period = (2 * 1000000).toLong()
@@ -12,20 +18,19 @@ class GameThread(private val gameSurfaceView: GameSurfaceView): Thread() {
         var startTime = System.nanoTime()
 
         while (true) {
-            var canvas: Canvas? = null;
+            var canvas: Canvas? = null
             val now = System.nanoTime()
-            this.gameSurfaceView.update(System.currentTimeMillis() - previousTimeUpdate)
             previousTimeUpdate = System.currentTimeMillis()
             if (now - previousTimeDraw >= periodDraw) {
                 previousTimeDraw = now
                 if (gameSurfaceView.holder != null) {
                     try {
-                        canvas = gameSurfaceView.holder.lockCanvas()
-                        synchronized(canvas) { this.gameSurfaceView.draw(canvas) }
+                        canvas = surfaceHolder.lockCanvas()
+                        synchronized(canvas) {gameSurfaceView.draw(canvas)}
                     } catch (e: java.lang.Exception) {
                     } finally {
                         if (canvas != null) {
-                            this.gameSurfaceView.holder.unlockCanvasAndPost(canvas)
+                            gameSurfaceView.holder.unlockCanvasAndPost(canvas)
                         }
                     }
                 }
@@ -42,4 +47,5 @@ class GameThread(private val gameSurfaceView: GameSurfaceView): Thread() {
             startTime = System.nanoTime()
         }
     }
+
 }

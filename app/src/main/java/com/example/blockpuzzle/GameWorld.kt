@@ -10,6 +10,7 @@ import android.view.View
 import com.example.blockpuzzle.gameobjects.BlockManager
 import com.example.blockpuzzle.gameobjects.Board
 import com.example.blockpuzzle.gameobjects.GroupBlock
+import com.example.blockpuzzle.gameobjects.Scoreboard
 
 enum class State {
     PLAYING,
@@ -20,25 +21,24 @@ class GameWorld(
     context: Context
 ): View.OnTouchListener {
     private val board = Board(context, 8)
+    private val blockPool: MutableList<GroupBlock> = mutableListOf()
+    private val blockDealer = BlockManager(context)
+    private val scoreboard = Scoreboard()
 
     private var deviceHeight = 0
     private var deviceWidth = 0
 
-    private val blockPool: MutableList<GroupBlock> = mutableListOf()
-    private val blockDealer = BlockManager(context)
-
     private var gameState = State.PLAYING
     private var isFirstSet = true
 
-    private var hookedPosY: Float = 0f
-    private var hookedPositionsX: MutableList<Float> = mutableListOf()
-    
+    private var hookedBlocksY: Float = 0f
+    private var hookedBlocksX: MutableList<Float> = mutableListOf()
+
     //Background
-    private val paint = Paint().apply {
-        color = Color.WHITE
-    }
+    private val paint = Paint()
 
     private fun generatePool() {
+        blockPool.clear()
         for (i in 0 until 3) {
             blockPool.add(blockDealer.getRandomBlock())
         }
@@ -49,48 +49,52 @@ class GameWorld(
     }
 
     fun render(canvas: Canvas?) {
+        paint.color = Color.WHITE
+        // Background
         canvas?.drawRect(0f, 0f, deviceWidth.toFloat(), deviceHeight.toFloat(), paint)
-        board.draw(canvas)
+
+        scoreboard.draw(canvas)
+        board.draw(canvas, paint)
 
         for (block in blockPool) {
             block.draw(canvas, paint)
         }
     }
 
-    fun update(deltaTime: Long) {
-        for (block in blockPool) {
-            if (!block.isHidden()) {
-                block.update(deltaTime)
-            }
-        }
-        board.update(deltaTime)
-    }
 
-    fun set(deviceWidth: Int, deviceHeight: Int) {
+    fun set(newDeviceWidth: Int, newDeviceHeight: Int) {
         if (!isFirstSet) {
             return
         }
         isFirstSet = false
 
-        this.deviceWidth = deviceWidth
-        this.deviceHeight = deviceHeight
-        val boardY: Float = deviceHeight * 0.1f
-        val boardX: Float = deviceWidth * 0.1f
-        val boardWidth: Float = deviceWidth * 0.8f
-        board.setBounds(boardY.toInt(), boardX.toInt(), boardWidth.toInt())
-        blockDealer.setMaxWidth(boardWidth / 8)
+        deviceWidth = newDeviceWidth
+        deviceHeight = newDeviceHeight
 
+        val boardY: Float = deviceHeight * 0.15f
+        val boardX: Float = deviceWidth * 0.05f
+        val boardWidth: Float = deviceWidth * 0.9f
+        board.setBounds(boardX.toInt(), boardY.toInt(), boardWidth.toInt())
 
-        hookedPosY = boardY + boardWidth + deviceWidth * 0.25f
+        scoreboard.set(
+            (boardX + (boardWidth / 2)).toInt(),
+            (deviceHeight * 0.1f).toInt(),
+            (deviceWidth * 0.1f).toInt(),
+            (deviceHeight * 0.01f).toInt()
+        )
+
+        blockDealer.setBlockWidth(boardWidth / 8)
+
+        hookedBlocksY = boardY + boardWidth + deviceWidth * 0.25f
         val distanceX = boardWidth / 6
-        hookedPositionsX.add(boardX + distanceX)
-        hookedPositionsX.add(boardX + distanceX * 3)
-        hookedPositionsX.add(boardX + distanceX * 5)
-        setGroupBlocksPosition()
+        hookedBlocksX.add(boardX + distanceX)
+        hookedBlocksX.add(boardX + distanceX * 3)
+        hookedBlocksX.add(boardX + distanceX * 5)
+        setPoolBlocksPosition()
 
-        blockPool[0].setSizeMaximum(boardWidth / 8)
-        blockPool[1].setSizeMaximum(boardWidth / 8)
-        blockPool[2].setSizeMaximum(boardWidth / 8)
+        for (block in blockPool) {
+            block.setChildSizeNormal(boardWidth / 8)
+        }
     }
 
 
@@ -100,7 +104,7 @@ class GameWorld(
             State.PLAYING -> {
                 when (event?.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        processPressing(event)
+                        processPress(event)
                     }
                     MotionEvent.ACTION_UP -> {
                         processTouch(event)
@@ -115,12 +119,11 @@ class GameWorld(
         return true
     }
 
-    private fun processPressing(event: MotionEvent) {
+    private fun processPress(event: MotionEvent) {
         for (block in blockPool) {
             if (!block.isHidden() &&
                 block.isInArea(event.x, event.y)
             ) {
-                //block.zoomOut()
                 block.setIsPressed(true)
             }
         }
@@ -132,19 +135,19 @@ class GameWorld(
                 if (block.isPressed()) {
                     block.setIsPressed(false)
                     val indexPair = board.getCellIndexByCoordinates(
-                        block.getFirstBlockMiddleX(),
-                        block.getFirstBlockMiddleY()
+                        block.getBlockMiddleX(),
+                        block.getBlockMiddleY()
                     )
                     if (indexPair != null &&
                         board.canInsert(indexPair, block.getBlockMatrix())
                     ) {
                         board.placeGroupBlock(indexPair, block.getBlockMatrix())
                         block.setHidden(true)
-                        board.deleteBlocks()
+                        scoreboard.points += board.scoreAndDeleteBlocks()
                     } else {
                         block.moveHome(
-                            hookedPositionsX[i],
-                            hookedPosY
+                            hookedBlocksX[i],
+                            hookedBlocksY
                         )
                     }
                 }
@@ -156,10 +159,12 @@ class GameWorld(
             blockPool[2].isHidden()
         ) {
             generatePool()
-            setGroupBlocksPosition()
+            setPoolBlocksPosition()
         } else {
             if (checkGameOver()) {
                 board.resetBoard()
+                generatePool()
+                setPoolBlocksPosition()
             }
         }
     }
@@ -173,10 +178,10 @@ class GameWorld(
         }
     }
 
-    private fun setGroupBlocksPosition() {
+    private fun setPoolBlocksPosition() {
         for ((i, block) in blockPool.withIndex()) {
-            block.setMiddleX(hookedPositionsX[i])
-            block.setMiddleY(hookedPosY)
+            block.setMiddleX(hookedBlocksX[i])
+            block.setMiddleY(hookedBlocksY)
             block.reset()
         }
     }
